@@ -179,3 +179,30 @@ def get_reporte_360_operaciones():
         LIMIT 50
     """
     return execute_query(query)
+
+
+# -------------------------------------------------------------
+# Endpoints para las vistas creadas en Athena
+# Las vistas viven en Athena; estos endpoints solo las consultan.
+# -------------------------------------------------------------
+
+@app.get("/analitica/vista-envios", tags=["Vistas Analíticas"])
+def get_vista_envios():
+    """Vista 1: consulta la vista analítica de envíos creada en Athena."""
+    query = """
+        SELECT *
+        FROM vista_analitica_envios
+        LIMIT 100
+    """
+    return execute_query(query)
+
+
+@app.get("/analitica/vista-reporte-logistica", tags=["Vistas Analíticas"])
+def get_vista_reporte_logistica():
+    """Vista 2: consulta la vista consolidada de reporte logístico creada en Athena."""
+    query = """
+        SELECT *
+        FROM vista_reporte_logistica
+        LIMIT 100
+    """
+    return execute_query(query)

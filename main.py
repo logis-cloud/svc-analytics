@@ -19,8 +19,8 @@ app.add_middleware(
 )
 
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-DATABASE_GLUE = os.getenv("DATABASE_GLUE", "logis_analytics")
-ATHENA_WORKGROUP = os.getenv("ATHENA_WORKGROUP", "logis-analytics-wg")
+DATABASE_GLUE = os.getenv("DATABASE_GLUE", "logistica")
+ATHENA_WORKGROUP = os.getenv("ATHENA_WORKGROUP", "primary")  # Ajustado a 'primary'
 S3_STAGING_DIR = os.getenv("S3_STAGING_DIR")
 
 
@@ -65,7 +65,6 @@ def health_check():
 
 # -------------------------------------------------------------
 # Endpoints Analíticos
-# Las consultas son fijas: no se acepta SQL enviado por el cliente.
 # -------------------------------------------------------------
 
 @app.get("/analitica/envios-por-vehiculo", tags=["Consultas Analíticas"])
@@ -73,12 +72,12 @@ def get_envios_por_vehiculo():
     """Consulta 1: envíos por tipo de vehículo y estado."""
     query = """
         SELECT
-            e."vehiculoasignado.tipo" AS tipo_vehiculo,
+            e.vehiculoasignado.tipo AS tipo_vehiculo,
             e.estado AS estado_envio,
             COUNT(*) AS total_envios
         FROM envios e
-        WHERE e."vehiculoasignado.tipo" IS NOT NULL
-        GROUP BY e."vehiculoasignado.tipo", e.estado
+        WHERE e.vehiculoasignado.tipo IS NOT NULL
+        GROUP BY e.vehiculoasignado.tipo, e.estado
         ORDER BY total_envios DESC
     """
     return execute_query(query)
@@ -89,12 +88,12 @@ def get_reporte_ciudades_destino():
     """Consulta 2: clientes y paquetes por ciudad de destino."""
     query = """
         SELECT
-            e."direccionentrega.ciudad" AS ciudad_destino,
+            e.direccionentrega.ciudad AS ciudad_destino,
             COUNT(DISTINCT e.clienteid) AS total_clientes,
             COUNT(*) AS total_paquetes
         FROM envios e
-        WHERE e."direccionentrega.ciudad" IS NOT NULL
-        GROUP BY e."direccionentrega.ciudad"
+        WHERE e.direccionentrega.ciudad IS NOT NULL
+        GROUP BY e.direccionentrega.ciudad
         ORDER BY total_paquetes DESC
     """
     return execute_query(query)
@@ -105,19 +104,19 @@ def get_rendimiento_conductores():
     """Consulta 3: rendimiento de conductores según envíos asignados y entregados."""
     query = """
         SELECT
-            e."conductorasignado.nombre" AS nombre_conductor,
-            e."conductorasignado.apellido" AS apellido_conductor,
-            e."vehiculoasignado.placa" AS placa_vehiculo,
-            e."vehiculoasignado.tipo" AS tipo_vehiculo,
+            e.conductorasignado.nombre AS nombre_conductor,
+            e.conductorasignado.apellido AS apellido_conductor,
+            e.vehiculoasignado.placa AS placa_vehiculo,
+            e.vehiculoasignado.tipo AS tipo_vehiculo,
             COUNT(e._id) AS total_envios_asignados,
             COUNT(CASE WHEN e.estado = 'ENTREGADO' THEN 1 END) AS envios_entregados
         FROM envios e
-        WHERE e."conductorasignado.nombre" IS NOT NULL
+        WHERE e.conductorasignado.nombre IS NOT NULL
         GROUP BY
-            e."conductorasignado.nombre",
-            e."conductorasignado.apellido",
-            e."vehiculoasignado.placa",
-            e."vehiculoasignado.tipo"
+            e.conductorasignado.nombre,
+            e.conductorasignado.apellido,
+            e.vehiculoasignado.placa,
+            e.vehiculoasignado.tipo
         ORDER BY total_envios_asignados DESC
     """
     return execute_query(query)
@@ -131,7 +130,7 @@ def get_top_clientes_demanda():
             cl.nombre AS nombre_cliente,
             cl.email AS email_cliente,
             COUNT(e._id) AS total_envios_realizados,
-            MAX(e."direccionentrega.ciudad") AS ciudad_mas_frecuente
+            MAX(e.direccionentrega.ciudad) AS ciudad_mas_frecuente
         FROM envios e
         JOIN clientes cl
             ON e.clienteid = cl.id
@@ -148,12 +147,12 @@ def get_flujo_origen_destino():
     query = """
         SELECT
             d.ciudad AS ciudad_origen,
-            e."direccionentrega.ciudad" AS ciudad_destino,
+            e.direccionentrega.ciudad AS ciudad_destino,
             COUNT(e._id) AS volumen_envios
         FROM envios e
         JOIN direcciones d
             ON e.clienteid = d.cliente_id
-        GROUP BY d.ciudad, e."direccionentrega.ciudad"
+        GROUP BY d.ciudad, e.direccionentrega.ciudad
         ORDER BY volumen_envios DESC
     """
     return execute_query(query)
@@ -166,10 +165,10 @@ def get_reporte_360_operaciones():
         SELECT
             e._id AS envio_id,
             cl.nombre AS cliente,
-            e."conductorasignado.nombre" AS conductor,
-            e."vehiculoasignado.placa" AS vehiculo_placa,
+            e.conductorasignado.nombre AS conductor,
+            e.vehiculoasignado.placa AS vehiculo_placa,
             d.ciudad AS origen,
-            e."direccionentrega.ciudad" AS destino,
+            e.direccionentrega.ciudad AS destino,
             e.estado AS estado_envio
         FROM envios e
         JOIN clientes cl
@@ -183,7 +182,6 @@ def get_reporte_360_operaciones():
 
 # -------------------------------------------------------------
 # Endpoints para las vistas creadas en Athena
-# Las vistas viven en Athena; estos endpoints solo las consultan.
 # -------------------------------------------------------------
 
 @app.get("/analitica/vista-envios", tags=["Vistas Analíticas"])
